@@ -888,6 +888,17 @@ Score: 5"></textarea>
        
        <!-- Results with View Answers Action -->
        <div id="admin-results" class="admin-content hidden">
+<div id="export-results-toolbar" class="flex flex-wrap gap-2 items-center justify-end my-4">
+  <button onclick="exportResultsCSV()"
+    class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl transition">
+    <i class="fas fa-file-csv mr-2"></i>ส่งออก CSV
+  </button>
+  <button onclick="exportResultsExcel()"
+    class="bg-green-700 hover:bg-green-800 text-white font-bold px-4 py-2 rounded-xl transition">
+    <i class="fas fa-file-excel mr-2"></i>ส่งออก Excel
+  </button>
+</div>
+
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
          <div class="flex gap-2">
           <select id="results-filter-subject" onchange="filterResultsTable()" class="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:outline-none text-sm"> <option value="">ทั้งหมด</option> </select> 
@@ -1328,6 +1339,7 @@ Score: 5"></textarea>
     let currentStudentObj = null;
     let isExamBlurred = false;
     let activeGlobalBroadcastMsg = "";
+    let appealUnlockRequired = false; // ล็อกหน้าจอจนกว่าครูจะอนุมัติอุทธรณ์
 
     // ==========================================
     // 1. ฟังก์ชันสร้างลายน้ำ (Dynamic Watermark)
@@ -1366,7 +1378,11 @@ Score: 5"></textarea>
       isExamBlurred = true;
     }
 
-    function hideBlurShield() {
+    function hideBlurShield(force = false) {
+      // เมื่อเกิดคำเตือน นักเรียนต้องยื่นอุทธรณ์ก่อน
+      // ห้ามการ focus/กลับแท็บเพียงอย่างเดียวปลดล็อกหน้าจอ
+      if (!force && appealUnlockRequired) return;
+
       const shield = document.getElementById("exam-blur-shield");
       if (shield) shield.style.display = "none";
       isExamBlurred = false;
@@ -2059,7 +2075,9 @@ Score: 5"></textarea>
         student.disqualified = false;
         student.live_warnings = 0;
         student.appeal_status = 'approved';
+        student.appeal_reason = '';
         student.is_blurred = false;
+        appealUnlockRequired = false;
         await window.dataSdk.update(student);
 
         const result = getResults().find(r => r.student_id === student.student_id && r.subject_id === student.subject_id);
@@ -2071,11 +2089,13 @@ Score: 5"></textarea>
         }
 
         logActivity(`อนุมัติการอุทธรณ์นักเรียน: ${student.student_id} (${student.fullname})`);
+        hideModal('live-appeal-review-modal');
         showAlert('success', 'อนุมัติแล้ว', 'ปลดล็อกให้ทำข้อสอบต่อเรียบร้อยแล้ว');
       } else {
         student.disqualified = true;
         student.appeal_status = 'rejected';
         await window.dataSdk.update(student);
+        hideModal('live-appeal-review-modal');
 
         const result = getResults().find(r => r.student_id === student.student_id && r.subject_id === student.subject_id);
         if (result) {
@@ -3584,13 +3604,17 @@ Score: 5"></textarea>
               document.getElementById('exam-warning-count').textContent = `คำเตือน: 4/3`;
               submitExam();
             } else if (!latestStudentState.disqualified && latestStudentState.appeal_status === 'approved' && currentStudentObj.appeal_status === 'pending') {
-              // Teacher approved appeal live!
+              // ครูอนุมัติอุทธรณ์แบบเรียลไทม์ -> ปลดล็อกข้อสอบอัตโนมัติ
               currentStudentObj.appeal_status = 'approved';
+              currentStudentObj.appeal_reason = '';
+              currentStudentObj.is_blurred = false;
+              currentStudentObj.live_warnings = 0;
               warningCount = 0;
+              appealUnlockRequired = false;
               document.getElementById('exam-warning-count').textContent = `คำเตือน: 0/3`;
               hideModal('warning-modal');
-              hideBlurShield();
-              showAlert('success', 'อุทธรณ์ได้รับการอนุมัติ!', 'ครูผู้คุมสอบได้อนุมัติการอุทธรณ์ของท่านแล้ว สามารถทำข้อสอบต่อได้ทันที');
+              hideBlurShield(true);
+              showAlert('success', 'อุทธรณ์ได้รับการอนุมัติ!', 'ครูผู้คุมสอบได้อนุมัติการอุทธรณ์ของท่านแล้ว ระบบปลดล็อกหน้าจอและอนุญาตให้ทำข้อสอบต่อได้ทันที');
             } else if (latestStudentState.appeal_status === 'rejected' && currentStudentObj.appeal_status === 'pending') {
               // Teacher rejected appeal live!
               currentStudentObj.appeal_status = 'rejected';
@@ -3850,11 +3874,41 @@ Score: 5"></textarea>
       studentAnswers = { mc: {}, essay: {} };
       warningCount = 0;
       currentStudentObj = null;
-      hideBlurShield();
+      appealUnlockRequired = false;
+      hideBlurShield(true);
       document.getElementById('student-form').reset();
     }
 
-    function setupExamProtection() {
+    // ============================================================
+    // ระบบตรวจจับการสลับแท็บ/หลุดโฟกัสสำหรับโหมดคุมสอบสด
+    // เมื่อเกิดคำเตือน จะล็อกหน้าจอจนกว่าจะยื่นอุทธรณ์และครูอนุมัติ
+    // ============================================================
+    function handleExamFocus() {
+      if (document.getElementById('page-exam')?.classList.contains('hidden')) return;
+      if (appealUnlockRequired || currentStudentObj?.appeal_status === 'pending') {
+        showBlurShield();
+        return;
+      }
+      hideBlurShield();
+    }
+
+    function handleWindowBlur() {
+      if (document.getElementById('page-exam')?.classList.contains('hidden')) return;
+      if (appealUnlockRequired) return;
+      addWarning('ตรวจพบการสลับหน้าต่าง/หลุดโฟกัสจากหน้าข้อสอบ');
+    }
+
+    function handleVisibilityChange() {
+      if (document.getElementById('page-exam')?.classList.contains('hidden')) return;
+      if (document.hidden) {
+        if (appealUnlockRequired) return;
+        addWarning('ตรวจพบการสลับแท็บหรือออกจากหน้าข้อสอบ');
+      } else {
+        handleExamFocus();
+      }
+    }
+
+        function setupExamProtection() {
       document.addEventListener('contextmenu', preventAction);
       document.addEventListener('copy', preventActionWithCopyMsg);
       document.addEventListener('paste', preventAction);
@@ -3862,7 +3916,7 @@ Score: 5"></textarea>
 
       document.addEventListener("visibilitychange", handleVisibilityChange);
       window.addEventListener("blur", handleWindowBlur);
-      window.addEventListener("focus", hideBlurShield);
+      window.addEventListener("focus", handleExamFocus);
       window.addEventListener("pagehide", showBlurShield);
 
       window.addEventListener("keydown", handleKeyDownProtection);
@@ -3912,16 +3966,13 @@ Score: 5"></textarea>
 
     function addWarning(message) {
       warningCount++;
+      appealUnlockRequired = true;
       document.getElementById('exam-warning-count').textContent = `คำเตือน: ${warningCount}/3`;
-      
-      if (warningCount >= 4) {
-        showAlert('error', 'ยุติการสอบ', 'ตรวจพบการทุจริตมากกว่า 3 ครั้ง การสอบถูกยุติลงทันที');
-        setTimeout(() => {
-          submitExam();
-        }, 2000);
-      } else {
-        showWarning(message);
-      }
+
+      // ในโหมดคุมสอบสด ทุกคำเตือนต้องยื่นอุทธรณ์ก่อน
+      // รวมถึงคำเตือนครั้งที่ 4 เป็นต้นไป: ห้ามส่งข้อสอบอัตโนมัติ
+      // นักเรียนจะทำต่อได้ก็ต่อเมื่อครูอนุมัติอุทธรณ์เท่านั้น
+      showWarning(message);
     }
 
     function showWarning(message) {
@@ -3938,6 +3989,8 @@ Score: 5"></textarea>
       if (appealBtn) appealBtn.classList.remove('hidden');
       if (appealPending) appealPending.classList.add('hidden');
       if (appealInput) appealInput.value = '';
+
+      appealUnlockRequired = true;
 
       if (currentStudentObj) {
         currentStudentObj.appeal_reason = "";
@@ -3958,7 +4011,7 @@ Score: 5"></textarea>
       document.removeEventListener('cut', preventAction);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
-      window.removeEventListener('focus', hideBlurShield);
+      window.removeEventListener('focus', handleExamFocus);
       window.removeEventListener('keydown', handleKeyDownProtection);
       window.removeEventListener('keyup', handleKeyUpProtection);
       document.removeEventListener('touchstart', handleTouchStartGesture);
@@ -4292,5 +4345,107 @@ Score: 5"></textarea>
     // Call initApp on load
     window.onload = initApp;
   </script>
- </body>
+ 
+<script>
+/* ===== Export Results: CSV / Excel ===== */
+function getExportableResults() {
+  const results = (typeof getResults === 'function') ? getResults() : [];
+  return results.map((r, i) => ({
+    "ลำดับ": i + 1,
+    "รหัสนักเรียน": r.student_id || "",
+    "ชื่อ-นามสกุล": r.fullname || "",
+    "ชั้น": r.class_name || "",
+    "ห้อง": r.room || "",
+    "รายวิชา": r.subject_name || "",
+    "คะแนน": r.score ?? "",
+    "คะแนนเต็ม": r.total ?? r.total_score ?? "",
+    "เปอร์เซ็นต์": r.percentage ?? "",
+    "คำเตือน": r.warnings ?? 0,
+    "ตรวจพบทุจริต": r.cheating_detected ? "ใช่" : "ไม่",
+    "สถานะอุทธรณ์": r.appeal_status || "",
+    "วันที่ส่ง": r.submitted_at || r.created_at || ""
+  }));
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportResultsCSV() {
+  const rows = getExportableResults();
+  if (!rows.length) {
+    if (typeof showAlert === "function") showAlert("warning", "ไม่พบข้อมูล", "ไม่มีข้อมูลผลสอบสำหรับส่งออก");
+    return;
+  }
+
+  const headers = Object.keys(rows[0]);
+  const escapeCSV = value => {
+    const s = String(value ?? "").replace(/"/g, '""');
+    return `"${s}"`;
+  };
+
+  const csv = "\uFEFF" +
+    headers.map(escapeCSV).join(",") + "\r\n" +
+    rows.map(row => headers.map(h => escapeCSV(row[h])).join(",")).join("\r\n");
+
+  downloadBlob(
+    new Blob([csv], {type: "text/csv;charset=utf-8;"}),
+    `ผลสอบ_${new Date().toISOString().slice(0,10)}.csv`
+  );
+}
+
+function exportResultsExcel() {
+  const rows = getExportableResults();
+  if (!rows.length) {
+    if (typeof showAlert === "function") showAlert("warning", "ไม่พบข้อมูล", "ไม่มีข้อมูลผลสอบสำหรับส่งออก");
+    return;
+  }
+
+  if (!window.XLSX) {
+    if (typeof showAlert === "function") {
+      showAlert("error", "ไม่พบระบบ Excel", "ไม่สามารถโหลด SheetJS/XLSX ได้");
+    }
+    return;
+  }
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = Object.keys(rows[0]).map(k => ({
+    wch: Math.max(14, Math.min(35, k.length + 8))
+  }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "ผลสอบ");
+
+  XLSX.writeFile(
+    wb,
+    `ผลสอบ_${new Date().toISOString().slice(0,10)}.xlsx`
+  );
+}
+
+/* Export generic table by element ID */
+function exportTableCSV(tableId, filename="export.csv") {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+
+  const rows = [...table.querySelectorAll("tr")].map(tr =>
+    [...tr.querySelectorAll("th,td")].map(td =>
+      `"${String(td.innerText || "").replace(/"/g, '""')}"`
+    ).join(",")
+  );
+
+  downloadBlob(
+    new Blob(["\uFEFF" + rows.join("\r\n")], {type:"text/csv;charset=utf-8;"}),
+    filename
+  );
+}
+</script>
+
+</body>
 </html>
