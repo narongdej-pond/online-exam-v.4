@@ -324,7 +324,7 @@
          </div>
          <div class="flex items-center gap-1.5 text-xs bg-emerald-500/30 px-3 py-1.5 rounded-full border border-emerald-300/40">
            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-           <span>ระบบคุมสอบสดเชื่อมต่อแล้ว</span>
+           <span>โหมดคุมสอบสดเชื่อมต่อแล้ว</span>
          </div>
         </div>
         <div class="text-right text-sm">
@@ -393,12 +393,12 @@
           <div id="appeal-form-box">
             <textarea id="appeal-reason-input" rows="3" class="w-full p-3 border-2 border-red-200 rounded-xl font-sarabun text-sm focus:border-red-500 focus:outline-none mb-3" placeholder="พิมพ์อธิบายเหตุผลในการยื่นอุทธรณ์ให้ครูผู้คุมสอบทราบ..."></textarea>
             <button onclick="submitStudentAppeal()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2">
-              <i class="fas fa-paper-plane"></i> ส่งคำร้องขออุทธรณ์ต่อครูผู้สอบ
+              <i class="fas fa-paper-plane"></i> ส่งคำร้องขออุทธรณ์ต่อครูผู้คุมสอบ
             </button>
           </div>
           <div id="appeal-status-pending" class="hidden bg-yellow-100 border border-yellow-300 text-yellow-800 p-4 rounded-xl text-center font-medium">
             <i class="fas fa-spinner spin text-xl mb-2 text-yellow-600 block"></i>
-            ส่งอุทธรณ์แล้ว - กำลังรอครูผู้สอบพิจารณาในโหมดคุมสอบสด...
+            ส่งอุทธรณ์แล้ว - กำลังรอครูผู้คุมสอบพิจารณาในโหมดคุมสอบสด...
           </div>
         </div>
 
@@ -457,7 +457,7 @@
       <nav class="flex-1 py-4">
        <div class="space-y-1 px-2">
         <button onclick="showAdminPage('dashboard')" class="sidebar-item active w-full text-left px-4 py-3 rounded-lg flex items-center gap-3" data-page="dashboard"> <i class="fas fa-chart-pie w-5"></i> แดชบอร์ด </button> 
-        <button onclick="showAdminPage('live-monitor')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 bg-red-500/20 text-red-200 hover:text-white" data-page="live-monitor"> <i class="fas fa-satellite-dish w-5 text-red-400 animate-pulse"></i> คุมสอบสด (Live) </button> 
+        <button onclick="showAdminPage('live-monitor')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3" data-page="live-monitor"> <i class="fas fa-satellite-dish w-5"></i>คุมสอบสด</button> 
         <button onclick="showAdminPage('members')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3" data-page="members"> <i class="fas fa-users w-5"></i> จัดการสมาชิก </button> 
         <button onclick="showAdminPage('create-exam')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3" data-page="create-exam"> <i class="fas fa-plus-circle w-5"></i> สร้างข้อสอบ </button> 
         <button onclick="showAdminPage('exams')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg flex items-center gap-3" data-page="exams"> <i class="fas fa-file-alt w-5"></i> จัดการข้อสอบ </button> 
@@ -571,19 +571,21 @@
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-600"></span>
               </span>
-              <h3 class="text-xl font-bold text-gray-800">โหมดคุมสอบสด (Live Exam Control Room)</h3>
+              <h3 class="text-xl font-bold text-gray-800">โหมดคุมสอบสด</h3>
               <span id="live-mode-badge" class="badge badge-success border border-emerald-300">
                 <i class="fas fa-circle text-[8px] mr-1.5 text-emerald-600"></i>กำลังทำงาน
               </span>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-3">
-            <!-- Toggle Live Control Mode Button -->
-            <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-xl border border-gray-200">
-              <span class="text-xs font-bold text-gray-600 pl-2"></i>สถานะคุมสอบ</span>
-              <button id="toggle-live-mode-btn" onclick="toggleLiveMonitorMode()" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-sm">
-                <span id="live-mode-btn-text">เปิดใช้งาน</span>
-              </button>
+            <!-- Toggle Live Control Mode Slide Switch -->
+            <div class="flex items-center gap-3 bg-gray-100 px-3.5 py-2 rounded-xl border border-gray-200 shadow-sm">
+              <span class="text-xs font-bold text-gray-700">สถานะคุมสอบ</span>
+              <label class="relative inline-flex items-center cursor-pointer select-none">
+                <input type="checkbox" id="toggle-live-mode-switch" onchange="toggleLiveMonitorMode()" checked class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span id="live-mode-btn-text" class="ml-2 text-xs font-bold text-emerald-600">เปิดอยู่</span>
+              </label>
             </div>
 
             <!-- Subject Filter Dropdown -->
@@ -635,7 +637,7 @@
                   <th class="px-4 py-3">ชั้น / ห้อง / เลขที่</th>
                   <th class="px-4 py-3">วิชาที่สอบ</th>
                   <th class="px-4 py-3">ความคืบหน้าสด</th>
-                  <th class="px-4 py-3">การสลับแท็บ / คำเตือน</th>
+                  <th class="px-4 py-3">คำเตือน</th>
                   <th class="px-4 py-3">สถานะสด</th>
                   <th class="px-4 py-3 text-center">คำสั่งคุมสอบสด</th>
                 </tr>
@@ -1009,6 +1011,48 @@ Score: 5"></textarea>
        <button onclick="sendGlobalBroadcast()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
         <i class="fas fa-paper-plane"></i> ส่งประกาศแจ้งเตือนสด
        </button>
+      </div>
+     </div>
+    </div>
+
+    <!-- Individual Warning Modal (ป๊อปอัปเตือนรายบุคคล) -->
+    <div id="individual-warning-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay">
+     <div class="bg-white rounded-2xl card-shadow p-6 w-full max-w-md mx-4 fade-in">
+      <div class="flex items-center justify-between mb-4 pb-2 border-b">
+       <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-comment-dots text-amber-500 mr-2"></i>ส่งข้อความเตือนรายบุคคล</h3>
+       <button onclick="hideModal('individual-warning-modal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="space-y-4">
+       <div class="bg-amber-50 p-3 rounded-xl border border-amber-200 text-sm">
+        <p class="text-gray-700"><strong>ผู้รับคำเตือน:</strong> <span id="ind-warning-student-name" class="font-bold text-amber-900"></span></p>
+       </div>
+       <input type="hidden" id="ind-warning-student-id">
+       <div>
+        <label class="block text-sm text-gray-700 font-medium mb-1">ข้อความเตือน</label>
+        <textarea id="ind-warning-message-input" rows="3" class="w-full p-3 border-2 border-gray-200 rounded-xl font-sarabun text-sm focus:border-amber-500 focus:outline-none" placeholder="เช่น กรุณามุ่งทำข้อสอบและห้ามสลับหน้าจอเด็ดขาด"></textarea>
+       </div>
+       <div class="flex gap-2">
+        <button onclick="hideModal('individual-warning-modal')" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl transition">ยกเลิก</button>
+        <button onclick="submitIndividualWarning()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+         <i class="fas fa-paper-plane"></i> ส่งคำเตือน
+        </button>
+       </div>
+      </div>
+     </div>
+    </div>
+
+    <!-- Confirm Disqualify Modal (ป๊อปอัปยืนยันตัดสิทธิ์การสอบ) -->
+    <div id="confirm-disqualify-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay">
+     <div class="bg-white rounded-2xl card-shadow p-6 w-full max-w-sm mx-4 fade-in text-center">
+      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+       <i class="fas fa-user-slash text-3xl text-red-500"></i>
+      </div>
+      <h3 class="text-xl font-bold text-gray-800 mb-2">ยืนยันการตัดสิทธิ์สอบ</h3>
+      <p id="disqualify-message" class="text-gray-600 text-sm mb-6"></p>
+      <input type="hidden" id="disqualify-student-backend-id">
+      <div class="flex gap-3">
+       <button onclick="hideModal('confirm-disqualify-modal')" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-4 rounded-xl transition"> ยกเลิก </button>
+       <button onclick="executeDisqualifyLiveStudent()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition"> ตัดสิทธิ์ทันที </button>
       </div>
      </div>
     </div>
@@ -1687,33 +1731,51 @@ Score: 5"></textarea>
     // 4. LIVE MONITORING & REAL-TIME APPEALS SYSTEM
     // ============================================================
     function toggleLiveMonitorMode() {
-      isLiveMonitorActive = !isLiveMonitorActive;
-      const btn = document.getElementById('toggle-live-mode-btn');
+      const switchEl = document.getElementById('toggle-live-mode-switch');
+      if (switchEl) {
+        if (typeof event !== 'undefined' && event && event.target !== switchEl) {
+          switchEl.checked = !switchEl.checked;
+        }
+        isLiveMonitorActive = switchEl.checked;
+      } else {
+        isLiveMonitorActive = !isLiveMonitorActive;
+      }
+
       const btnText = document.getElementById('live-mode-btn-text');
       const badge = document.getElementById('live-mode-badge');
       const ping = document.getElementById('live-status-ping');
       const broadcastBtn = document.getElementById('live-broadcast-btn');
 
       if (isLiveMonitorActive) {
-        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-sm';
-        btnText.textContent = 'เปิดอยู่ (คลิกเพื่อปิด)';
-        badge.className = 'badge badge-success border border-emerald-300';
-        badge.innerHTML = '<i class="fas fa-circle text-[8px] mr-1.5 text-emerald-600"></i>กำลังทำงาน';
-        ping.className = 'relative flex h-3.5 w-3.5';
+        if (switchEl) switchEl.checked = true;
+        if (btnText) {
+          btnText.textContent = 'เปิดอยู่';
+          btnText.className = 'ml-2 text-xs font-bold text-emerald-600';
+        }
+        if (badge) {
+          badge.className = 'badge badge-success border border-emerald-300';
+          badge.innerHTML = '<i class="fas fa-circle text-[8px] mr-1.5 text-emerald-600"></i>กำลังทำงาน';
+        }
+        if (ping) ping.className = 'relative flex h-3.5 w-3.5';
         if (broadcastBtn) broadcastBtn.disabled = false;
 
         logActivity('เปิดโหมดคุมสอบสด (Live Exam Monitoring Enabled)');
-        showAlert('success', 'เปิดโหมดคุมสอบสด', 'เปิดระบบคุมสอบสดและรับส่งข้อมูลวินาทีต่อวินาทีแล้ว');
+        showAlert('success', 'เปิดโหมดคุมสอบสด', 'เปิดโหมดคุมสอบสดและรับส่งข้อมูลวินาทีต่อวินาทีแล้ว');
 
         if (liveMonitorTimer) clearInterval(liveMonitorTimer);
         liveMonitorTimer = setInterval(refreshLiveMonitorData, 2000);
         refreshLiveMonitorData();
       } else {
-        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-gray-500 hover:bg-gray-600 transition flex items-center gap-1.5 shadow-sm';
-        btnText.textContent = 'ปิดอยู่ (คลิกเพื่อเปิด)';
-        badge.className = 'badge badge-danger border border-red-300';
-        badge.innerHTML = '<i class="fas fa-pause-circle text-xs mr-1 text-red-600"></i>ปิดใช้งาน';
-        ping.className = 'hidden';
+        if (switchEl) switchEl.checked = false;
+        if (btnText) {
+          btnText.textContent = 'ปิดอยู่';
+          btnText.className = 'ml-2 text-xs font-bold text-gray-500';
+        }
+        if (badge) {
+          badge.className = 'badge badge-danger border border-red-300';
+          badge.innerHTML = '<i class="fas fa-pause-circle text-xs mr-1 text-red-600"></i>ปิดใช้งาน';
+        }
+        if (ping) ping.className = 'hidden';
         if (broadcastBtn) broadcastBtn.disabled = true;
 
         if (liveMonitorTimer) clearInterval(liveMonitorTimer);
@@ -1759,7 +1821,7 @@ Score: 5"></textarea>
               <div class="max-w-md mx-auto">
                 <i class="fas fa-power-off text-4xl text-gray-400 mb-3 block"></i>
                 <p class="font-bold text-gray-700 text-base">โหมดคุมสอบสดปิดใช้งานอยู่</p>
-                <p class="text-xs text-gray-500 mt-1 mb-4">ระบบจะไม่ดึงข้อมูลสถานะสดหรือรับคำร้องอุทธรณ์ของนักเรียนแบบ Real-time</p>
+                <p class="text-xs text-gray-500 mt-1 mb-4">ระบบจะไม่ดึงข้อมูลสถานะสดหรือรับคำร้องอุทธรณ์ของนักเรียนแบบเรียลไทม์</p>
                 <button onclick="toggleLiveMonitorMode()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition">
                   <i class="fas fa-play mr-1"></i> คลิกเพื่อเปิดโหมดคุมสอบสด
                 </button>
@@ -1842,7 +1904,7 @@ Score: 5"></textarea>
                     <i class="fas fa-user-slash"></i> ตัดสิทธิ์
                   </button>
                 ` : `
-                  <button onclick="resetLiveStudentWarnings('${s.__backendId}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg transition" title="ปลดล็อก/ให้โอกาสทำต่อ">
+                  <button onclick="resetLiveStudentWarnings('${s.__backendId}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg transition" title="ปลดล็อก/คืนสิทธิ์ทำข้อสอบ">
                     <i class="fas fa-undo"></i> ปลดล็อก
                   </button>
                 `}
@@ -1876,30 +1938,54 @@ Score: 5"></textarea>
       showAlert('success', 'ส่งประกาศเรียบร้อย', 'นักเรียนที่กำลังสอบจะเห็นข้อความประกาศทันที');
     }
 
-    async function sendLiveIndividualWarning(studentBackendId) {
+    function sendLiveIndividualWarning(studentBackendId) {
       const student = appData.find(s => s.__backendId === studentBackendId);
       if (!student) return;
 
-      const warningText = prompt(`พิมพ์ข้อความเตือนส่งถึง ${student.fullname}:`, "กรุณามุ่งทำข้อสอบและห้ามสลับหน้าจอเด็ดขาด");
-      if (warningText) {
-        student.custom_warning = warningText;
-        await window.dataSdk.update(student);
-        logActivity(`เตือนนักเรียน ${student.student_id} (${student.fullname}): "${warningText}"`);
-        showAlert('success', 'ส่งข้อความเตือนแล้ว', `ส่งข้อความเตือนไปยัง ${student.fullname} แล้ว`);
-      }
+      document.getElementById('ind-warning-student-name').textContent = `${student.fullname} (${student.student_id})`;
+      document.getElementById('ind-warning-student-id').value = studentBackendId;
+      document.getElementById('ind-warning-message-input').value = "กรุณามุ่งทำข้อสอบและห้ามสลับหน้าจอเด็ดขาด";
+      showModal('individual-warning-modal');
     }
 
-    async function disqualifyLiveStudent(studentBackendId) {
+    async function submitIndividualWarning() {
+      const studentBackendId = document.getElementById('ind-warning-student-id').value;
       const student = appData.find(s => s.__backendId === studentBackendId);
       if (!student) return;
 
-      showConfirmDelete(`สั่งตัดสิทธิ์การสอบของ ${student.fullname} ทันทีใช่หรือไม่?`, async () => {
-        student.disqualified = true;
-        student.live_warnings = 4;
-        await window.dataSdk.update(student);
-        logActivity(`ครูสั่งตัดสิทธิ์สอบสด: ${student.student_id} (${student.fullname})`);
-        showAlert('success', 'ตัดสิทธิ์เรียบร้อย', `ตัดสิทธิ์ ${student.fullname} แล้ว`);
-      });
+      const warningText = document.getElementById('ind-warning-message-input').value.trim();
+      if (!warningText) {
+        showAlert('warning', 'ไม่มีข้อความ', 'กรุณากรอกข้อความเตือน');
+        return;
+      }
+
+      student.custom_warning = warningText;
+      await window.dataSdk.update(student);
+      hideModal('individual-warning-modal');
+      logActivity(`เตือนนักเรียน ${student.student_id} (${student.fullname}): "${warningText}"`);
+      showAlert('success', 'ส่งข้อความเตือนแล้ว', `ส่งข้อความเตือนไปยัง ${student.fullname} เรียบร้อยแล้ว`);
+    }
+
+    function disqualifyLiveStudent(studentBackendId) {
+      const student = appData.find(s => s.__backendId === studentBackendId);
+      if (!student) return;
+
+      document.getElementById('disqualify-student-backend-id').value = studentBackendId;
+      document.getElementById('disqualify-message').textContent = `คุณต้องการสั่งตัดสิทธิ์การสอบของ ${student.fullname} (${student.student_id}) ทันทีใช่หรือไม่?`;
+      showModal('confirm-disqualify-modal');
+    }
+
+    async function executeDisqualifyLiveStudent() {
+      const studentBackendId = document.getElementById('disqualify-student-backend-id').value;
+      const student = appData.find(s => s.__backendId === studentBackendId);
+      if (!student) return;
+
+      student.disqualified = true;
+      student.live_warnings = 4;
+      await window.dataSdk.update(student);
+      hideModal('confirm-disqualify-modal');
+      logActivity(`ครูสั่งตัดสิทธิ์สอบสด: ${student.student_id} (${student.fullname})`);
+      showAlert('success', 'ตัดสิทธิ์เรียบร้อย', `ตัดสิทธิ์ ${student.fullname} แล้ว`);
     }
 
     async function resetLiveStudentWarnings(studentBackendId) {
@@ -2009,7 +2095,7 @@ Score: 5"></textarea>
 
       document.getElementById('appeal-form-box').classList.add('hidden');
       document.getElementById('appeal-status-pending').classList.remove('hidden');
-      showAlert('success', 'ส่งคำร้องอุทธรณ์แล้ว', 'ส่งข้อมูลไปยังระบบคุมสอบสดเรียบร้อยแล้ว กรุณารอครูผู้สอบพิจารณา');
+      showAlert('success', 'ส่งคำร้องอุทธรณ์แล้ว', 'ส่งข้อมูลไปยังโหมดคุมสอบสดเรียบร้อยแล้ว กรุณารอครูผู้คุมสอบพิจารณา');
     }
 
     function updateDashboard() {
@@ -2500,7 +2586,7 @@ Score: 5"></textarea>
 
       const titles = {
         'dashboard': 'แดชบอร์ด',
-        'live-monitor': 'โหมดคุมสอบสด (Live)',
+        'live-monitor': 'คุมสอบสด',
         'members': 'จัดการสมาชิก',
         'create-exam': 'สร้างข้อสอบ',
         'exams': 'จัดการข้อสอบ',
@@ -3484,7 +3570,7 @@ Score: 5"></textarea>
               warningCount = 0;
               document.getElementById('exam-warning-count').textContent = `คำเตือน: 0/3`;
               showPage('exam');
-              showAlert('success', 'อุทธรณ์ผ่านแล้ว!', 'ครูผู้สอบได้อนุมัติการอุทธรณ์ของท่านแล้ว สามารถทำข้อสอบต่อได้ทันที');
+              showAlert('success', 'อุทธรณ์ผ่านแล้ว!', 'ครูผู้คุมสอบได้อนุมัติการอุทธรณ์ของท่านแล้ว สามารถทำข้อสอบต่อได้ทันที');
             }
           }
 
