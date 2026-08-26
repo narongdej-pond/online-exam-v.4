@@ -1258,14 +1258,28 @@ Score: 5"></textarea>
     
     <!-- Warning Modal (for exam) -->
     <div id="warning-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay">
-     <div class="bg-white rounded-2xl card-shadow p-6 w-full max-w-sm mx-4 fade-in text-center">
+     <div class="bg-white rounded-2xl card-shadow p-6 w-full max-w-md mx-4 fade-in text-center border-2 border-amber-400">
       <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
        <i class="fas fa-exclamation-circle text-3xl text-yellow-500"></i>
       </div>
-      <h3 class="text-xl font-bold text-gray-800 mb-2">⚠️ คำเตือน!</h3>
-      <p id="warning-message" class="text-gray-600 mb-2"></p>
-      <p id="warning-count" class="text-red-500 font-bold mb-6"></p>
-      <button onclick="hideModal('warning-modal')" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-xl transition"> รับทราบ </button>
+      <h3 class="text-xl font-bold text-gray-800 mb-2">⚠️ ตรวจพบการสลับแท็บ / ทุจริต</h3>
+      <p id="warning-message" class="text-gray-600 mb-2 text-sm"></p>
+      <p id="warning-count" class="text-red-500 font-bold mb-4 text-sm"></p>
+      
+      <!-- Live Appeal Submission Form per Warning -->
+      <div id="warning-appeal-box" class="text-left bg-amber-50 p-4 rounded-xl border border-amber-200 mb-4">
+        <label class="block text-xs font-bold text-amber-900 mb-1"><i class="fas fa-balance-scale mr-1"></i>ระบุเหตุผลในการยื่นอุทธรณ์ชี้แจงต่อครูผู้คุมสอบ:</label>
+        <textarea id="warning-appeal-reason-input" rows="3" class="w-full p-2.5 border-2 border-amber-300 rounded-xl font-sarabun text-xs focus:border-amber-500 focus:outline-none bg-white" placeholder="พิมพ์อธิบายเหตุผล เช่น มีสายโทรเข้า, มีการแจ้งเตือนระบบ..."></textarea>
+      </div>
+
+      <div id="warning-appeal-pending" class="hidden bg-purple-100 border border-purple-300 text-purple-900 p-3 rounded-xl text-xs text-center font-semibold mb-4">
+        <i class="fas fa-spinner spin text-lg mb-1 block text-purple-600"></i>
+        ส่งคำร้องอุทธรณ์แล้ว - กำลังรอครูผู้คุมสอบพิจารณาในโหมดคุมสอบสด...
+      </div>
+
+      <button id="submit-warning-appeal-btn" onclick="submitWarningAppeal()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl transition flex items-center justify-center gap-2 text-sm">
+        <i class="fas fa-paper-plane"></i> ส่งอุทธรณ์ชี้แจงต่อครูผู้คุมสอบ
+      </button>
      </div>
     </div>
     
@@ -2044,6 +2058,7 @@ Score: 5"></textarea>
         student.disqualified = false;
         student.live_warnings = 0;
         student.appeal_status = 'approved';
+        student.is_blurred = false;
         await window.dataSdk.update(student);
 
         const result = getResults().find(r => r.student_id === student.student_id && r.subject_id === student.subject_id);
@@ -2057,12 +2072,14 @@ Score: 5"></textarea>
         logActivity(`อนุมัติการอุทธรณ์นักเรียน: ${student.student_id} (${student.fullname})`);
         showAlert('success', 'อนุมัติแล้ว', 'ปลดล็อกให้ทำข้อสอบต่อเรียบร้อยแล้ว');
       } else {
+        student.disqualified = true;
         student.appeal_status = 'rejected';
         await window.dataSdk.update(student);
 
         const result = getResults().find(r => r.student_id === student.student_id && r.subject_id === student.subject_id);
         if (result) {
           result.appeal_status = 'rejected';
+          result.cheating_detected = true;
           await window.dataSdk.update(result);
         }
 
@@ -3560,17 +3577,27 @@ Score: 5"></textarea>
               showModal('student-live-alert');
             }
 
-            // 2. Check for teacher manual disqualification / warning reset
+            // 2. Check for teacher manual disqualification / warning reset / appeal approval
             if (latestStudentState.disqualified && warningCount < 4) {
               warningCount = 4;
               document.getElementById('exam-warning-count').textContent = `คำเตือน: 4/3`;
               submitExam();
-            } else if (!latestStudentState.disqualified && latestStudentState.appeal_status === 'approved' && warningCount >= 4) {
+            } else if (!latestStudentState.disqualified && latestStudentState.appeal_status === 'approved' && currentStudentObj.appeal_status === 'pending') {
               // Teacher approved appeal live!
+              currentStudentObj.appeal_status = 'approved';
               warningCount = 0;
               document.getElementById('exam-warning-count').textContent = `คำเตือน: 0/3`;
-              showPage('exam');
-              showAlert('success', 'อุทธรณ์ผ่านแล้ว!', 'ครูผู้คุมสอบได้อนุมัติการอุทธรณ์ของท่านแล้ว สามารถทำข้อสอบต่อได้ทันที');
+              hideModal('warning-modal');
+              hideBlurShield();
+              showAlert('success', 'อุทธรณ์ได้รับการอนุมัติ!', 'ครูผู้คุมสอบได้อนุมัติการอุทธรณ์ของท่านแล้ว สามารถทำข้อสอบต่อได้ทันที');
+            } else if (latestStudentState.appeal_status === 'rejected' && currentStudentObj.appeal_status === 'pending') {
+              // Teacher rejected appeal live!
+              currentStudentObj.appeal_status = 'rejected';
+              hideModal('warning-modal');
+              showAlert('error', 'การอุทธรณ์ถูกปฏิเสธ', 'ครูผู้คุมสอบได้ปฏิเสธคำร้องอุทธรณ์ของคุณ ระบบจะทำการยุติการสอบทันที');
+              setTimeout(() => {
+                submitExam();
+              }, 2000);
             }
           }
 
@@ -3846,7 +3873,7 @@ Score: 5"></textarea>
     function preventAction(e) {
       if (document.getElementById('page-exam').classList.contains('hidden')) return;
       e.preventDefault();
-      showWarning('ไม่อนุญาตให้ใช้งานเมนูคลิกขวา คัดลอก หรือวางข้อความ');
+      addWarning('ไม่อนุญาตให้ใช้งานเมนูคลิกขวา คัดลอก หรือวางข้อความ');
     }
 
     function preventActionWithCopyMsg(e) {
@@ -3855,67 +3882,31 @@ Score: 5"></textarea>
       if (e.clipboardData) {
         e.clipboardData.setData("text/plain", "ไม่อนุญาตให้คัดลอกข้อสอบ");
       }
-      showWarning('ไม่อนุญาตให้คัดลอกข้อสอบ');
+      addWarning('ไม่อนุญาตให้คัดลอกข้อสอบ');
     }
 
-    function handleVisibilityChange() {
-      if (document.getElementById('page-exam').classList.contains('hidden')) return;
-      if (document.hidden) {
-        showBlurShield();
-        addWarning('ตรวจพบการสลับแท็บหรือออกจากหน้าจอข้อสอบ');
-      } else {
-        hideBlurShield();
+    async function submitWarningAppeal() {
+      const reasonInput = document.getElementById('warning-appeal-reason-input');
+      const reason = reasonInput ? reasonInput.value.trim() : '';
+
+      if (!reason) {
+        showAlert('warning', 'กรุณาระบุเหตุผล', 'กรุณาพิมพ์อธิบายเหตุผลก่อนส่งอุทธรณ์ชี้แจงต่อครูผู้คุมสอบ');
+        return;
       }
-    }
 
-    function handleWindowBlur() {
-      if (document.getElementById('page-exam').classList.contains('hidden')) return;
-      showBlurShield();
-      addWarning('ตรวจพบการออกจากหน้าต่างสอบ');
-    }
-
-    function handleKeyDownProtection(e) {
-      if (document.getElementById('page-exam').classList.contains('hidden')) return;
-
-      const key = e.key.toUpperCase();
-
-      if (e.key === "F12" || (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(key))) {
-        e.preventDefault();
-        showWarning('ไม่อนุญาตให้เปิด เครื่องมือผู้พัฒนา (DevTools)');
+      if (currentStudentObj) {
+        currentStudentObj.appeal_reason = reason;
+        currentStudentObj.appeal_status = 'pending';
+        currentStudentObj.is_blurred = true;
+        currentStudentObj.live_warnings = warningCount;
+        await window.dataSdk.update(currentStudentObj);
       }
-      if (e.ctrlKey && ["P", "S", "U"].includes(key)) {
-        e.preventDefault();
-        showWarning('ไม่อนุญาตให้สั่งพิมพ์ หรือบันทึกหน้าข้อสอบ');
-      }
-      if (e.metaKey && e.shiftKey && ["3", "4", "5"].includes(key)) {
-        e.preventDefault();
-        showBlurShield();
-        addWarning('ตรวจพบการพยายามจับภาพหน้าจอ (Mac Shortcut)');
-        setTimeout(hideBlurShield, 2000);
-      }
-    }
 
-    function handleKeyUpProtection(e) {
-      if (document.getElementById('page-exam').classList.contains('hidden')) return;
+      document.getElementById('warning-appeal-box').classList.add('hidden');
+      document.getElementById('submit-warning-appeal-btn').classList.add('hidden');
+      document.getElementById('warning-appeal-pending').classList.remove('hidden');
 
-      if (e.key === "PrintScreen" || e.keyCode === 44) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText("ไม่อนุญาตให้จับภาพหน้าจอข้อสอบ");
-        }
-        showBlurShield();
-        addWarning('ตรวจพบการพยายามกด PrintScreen จับภาพหน้าจอ');
-        setTimeout(hideBlurShield, 1500);
-      }
-    }
-
-    function handleTouchStartGesture(e) {
-      if (document.getElementById('page-exam').classList.contains('hidden')) return;
-      if (e.touches && e.touches.length >= 3) {
-        e.preventDefault();
-        showBlurShield();
-        addWarning('ตรวจพบ Touch Gesture จับภาพหน้าจอ 3 นิ้ว');
-        setTimeout(hideBlurShield, 1500);
-      }
+      logActivity(`นักเรียน ${currentStudentObj?.fullname || ''} ยื่นอุทธรณ์สด (คำเตือนที่ ${warningCount}): "${reason}"`);
     }
 
     function addWarning(message) {
@@ -3934,7 +3925,26 @@ Score: 5"></textarea>
 
     function showWarning(message) {
       document.getElementById('warning-message').textContent = message;
-      document.getElementById('warning-count').textContent = `ครั้งที่ ${warningCount}/3 (ครั้งที่ 4 จะถูกยุติการสอบ)`;
+      document.getElementById('warning-count').textContent = `ครั้งที่ ${warningCount}/3 (กรุณายื่นอุทธรณ์ชี้แจงต่อครูผู้คุมสอบเพื่อทำข้อสอบต่อ)`;
+      
+      // Reset Appeal Box State for new warning
+      const appealBox = document.getElementById('warning-appeal-box');
+      const appealBtn = document.getElementById('submit-warning-appeal-btn');
+      const appealPending = document.getElementById('warning-appeal-pending');
+      const appealInput = document.getElementById('warning-appeal-reason-input');
+
+      if (appealBox) appealBox.classList.remove('hidden');
+      if (appealBtn) appealBtn.classList.remove('hidden');
+      if (appealPending) appealPending.classList.add('hidden');
+      if (appealInput) appealInput.value = '';
+
+      if (currentStudentObj) {
+        currentStudentObj.appeal_status = 'none';
+        currentStudentObj.is_blurred = true;
+        currentStudentObj.live_warnings = warningCount;
+      }
+
+      showBlurShield();
       showModal('warning-modal');
     }
 
