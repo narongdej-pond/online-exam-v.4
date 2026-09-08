@@ -5128,7 +5128,7 @@ Score: 5"></textarea>
 
       const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
       downloadBlob(blob, filename);
-      logActivity(`ส่งออกไฟล์ Excel สำรอง: ${sheetTitle}`);
+      logActivity(`ส่งออกไฟล์ Excel: ${sheetTitle}`);
       showAlert('success', 'ส่งออกสำเร็จ', `ดาวน์โหลดไฟล์ ${filename} เรียบร้อยแล้ว`);
     }
 
@@ -5218,11 +5218,7 @@ Score: 5"></textarea>
           }
         } catch (error) {
           console.warn('XLSX writing error, switching to XML Excel format:', error);
-          try {
-            exportExcelXML(headers, rows, `${filename}_${timestamp}.xls`, filename);
-          } catch (errFallback) {
-            showAlert('error', 'ผิดพลาด', 'ไม่สามารถสร้างไฟล์ Excel ได้ โปรดลองใช้ CSV แทน');
-          }
+          exportExcelXML(headers, rows, `${filename}_${timestamp}.xls`, filename);
         }
       } else {
         let csv = '\uFEFF' + headers.join(',') + '\n';
