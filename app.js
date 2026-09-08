@@ -41,7 +41,7 @@
       }
     
 
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwod0HL8fzn7lzmV2o9pVfJ870wtxXwPBXFCS3WwNq9rGCWfj22dlul12KEEFz8A7nF/exec'; 
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxhQN4Pfrl9XyMDrytnNF7lCOfH51Fv1cJATXMYcHKa-YCpFbsacCqW4D5BqfiMm6DpLg/exec'; 
 
     let appData = [];
     let currentUser = null;
