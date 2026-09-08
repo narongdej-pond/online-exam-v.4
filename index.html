@@ -581,17 +581,20 @@
       <div id="admin-proctoring" class="admin-content hidden">
        <div class="bg-white rounded-2xl card-shadow p-6 mb-6">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
-         <div class="flex items-center gap-3 shrink-0">
-          <span class="relative flex h-3.5 w-3.5">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-600"></span>
-          </span>
-          <h3 class="text-xl font-bold text-gray-800 whitespace-nowrap">คุมสอบ</h3>
-         </div>
-         <div class="flex flex-wrap items-center gap-3">
-          <select id="proctor-subject-select" onchange="changeProctorSubject()" class="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none text-sm font-semibold text-gray-700 bg-white shadow-sm">
+         <div class="flex flex-wrap items-center gap-3 shrink-0">
+          <div class="flex items-center gap-2 mr-2">
+           <span class="relative flex h-3.5 w-3.5">
+             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+             <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-600"></span>
+           </span>
+           <h3 class="text-xl font-bold text-gray-800 whitespace-nowrap">คุมสอบ</h3>
+          </div>
+          <!-- ตัวกรองเลือกรายวิชาเพื่อคุมสอบ แสดงชิดด้านซ้าย -->
+          <select id="proctor-subject-select" onchange="changeProctorSubject()" class="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none text-sm font-semibold text-gray-700 bg-white shadow-sm min-w-[240px]">
            <option value="">-- เลือกรายวิชาเพื่อคุมสอบ --</option>
           </select>
+         </div>
+         <div class="flex flex-wrap items-center gap-3">
           <button onclick="broadcastAlertToAllModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
            <i class="fas fa-bullhorn"></i> แจ้งเตือนทุกคน
           </button>
@@ -1451,6 +1454,13 @@ Score: 5"></textarea>
     let isStudentSyncing = false;
     let isStudentDisqualified = false;
 
+    // Helper: ตรวจสอบสิทธิ์ผู้ดูแลระบบ (Admin Guard)
+    function isUserAdmin() {
+      if (!currentUser || !currentUser.role) return false;
+      const role = String(currentUser.role).trim().toLowerCase();
+      return role === 'admin' || role === 'ผู้ดูแลระบบ' || role === 'ผู้ดูแลหลัก';
+    }
+
     function parseAndFormatThaiDateTime(rawDate) {
       if (!rawDate) {
         const now = new Date();
@@ -2018,7 +2028,6 @@ Score: 5"></textarea>
         return;
       }
 
-      const isAdmin = currentUser && currentUser.role === 'admin';
       tbody.innerHTML = announcements.map((a, i) => {
         let levelBadge = '<span class="badge badge-info">ทั่วไป</span>';
         if (a.level === 'warning') levelBadge = '<span class="badge badge-warning">สำคัญ</span>';
@@ -2039,17 +2048,17 @@ Score: 5"></textarea>
               </span>
             </td>
             <td class="px-4 py-3 text-center">
-              ${isAdmin ? `
-                <button onclick="editAnnouncement('${a.__backendId}')" class="text-primary-600 hover:text-primary-800 mx-1 font-medium text-xs px-2 py-1 rounded bg-blue-50">
+              <div class="flex items-center justify-center gap-1">
+                <button onclick="editAnnouncement('${a.__backendId}')" class="text-primary-600 hover:text-primary-800 font-medium text-xs px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 transition" title="แก้ไขประกาศ">
                   <i class="fas fa-edit mr-1"></i>แก้ไข
                 </button>
-                <button onclick="toggleAnnouncementActive('${a.__backendId}')" class="text-yellow-600 hover:text-yellow-800 mx-1 font-medium text-xs px-2 py-1 rounded bg-yellow-50">
+                <button onclick="toggleAnnouncementActive('${a.__backendId}')" class="text-yellow-700 hover:text-yellow-900 font-medium text-xs px-2.5 py-1 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition" title="${a.is_active ? 'ซ่อนประกาศ' : 'แสดงประกาศ'}">
                   <i class="fas fa-${a.is_active ? 'eye-slash' : 'eye'} mr-1"></i>${a.is_active ? 'ซ่อน' : 'แสดง'}
                 </button>
-                <button onclick="deleteAnnouncement('${a.__backendId}')" class="text-red-500 hover:text-red-700 mx-1 font-medium text-xs px-2 py-1 rounded bg-red-50">
+                <button onclick="deleteAnnouncement('${a.__backendId}')" class="text-red-500 hover:text-red-700 font-medium text-xs px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 transition" title="ลบประกาศ">
                   <i class="fas fa-trash mr-1"></i>ลบ
                 </button>
-              ` : `<span class="text-xs text-gray-400">เฉพาะ Admin</span>`}
+              </div>
             </td>
           </tr>
         `;
@@ -2057,7 +2066,7 @@ Score: 5"></textarea>
     }
 
     function openAddAnnouncementModal() {
-      if (!currentUser || currentUser.role !== 'admin') {
+      if (!isUserAdmin()) {
         showAlert('warning', 'ไม่มีสิทธิ์การใช้งาน', 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถสร้างประกาศได้');
         return;
       }
@@ -2071,7 +2080,7 @@ Score: 5"></textarea>
     }
 
     function editAnnouncement(backendId) {
-      if (!currentUser || currentUser.role !== 'admin') {
+      if (!isUserAdmin()) {
         showAlert('warning', 'ไม่มีสิทธิ์การใช้งาน', 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถแก้ไขประกาศได้');
         return;
       }
@@ -2099,8 +2108,8 @@ Score: 5"></textarea>
     }
 
     async function toggleAnnouncementActive(backendId) {
-      if (!currentUser || currentUser.role !== 'admin') {
-        showAlert('warning', 'ไม่มีสิทธิ์การใช้งาน', 'เฉพาะผู้ดูแลระบบหลักเท่านั้น');
+      if (!isUserAdmin()) {
+        showAlert('warning', 'ไม่มีสิทธิ์การใช้งาน', 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถเปิด/ซ่อนประกาศได้');
         return;
       }
       const item = appData.find(d => d.__backendId === backendId);
@@ -2126,8 +2135,8 @@ Score: 5"></textarea>
     }
 
     function deleteAnnouncement(backendId) {
-      if (!currentUser || currentUser.role !== 'admin') {
-        showAlert('warning', 'ไม่มีสิทธิ์การใช้งาน', 'เฉพาะผู้ดูแลระบบหลักเท่านั้น');
+      if (!isUserAdmin()) {
+        showAlert('warning', 'ไม่มีสิทธิ์การใช้งาน', 'เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถลบประกาศได้');
         return;
       }
       const item = appData.find(d => d.__backendId === backendId);
