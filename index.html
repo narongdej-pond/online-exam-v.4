@@ -4690,7 +4690,7 @@ Score: 5"></textarea>
       document.body.removeChild(loadingOverlay);
 
       if (result.isOk) {
-        logActivity(`นักเรียน ${examResult.student_id} (${examResult.fullname}) ส่งข้อสอบวิชา ${examResult.subject_name} (${isDisqualifiedNow ? 'ถูกตัดสิทธิ์' : `คะแนนปรนัย: ${mcScore}/${examResult.total_score}`})`);
+        logActivity(`นักเรียน ${examResult.student_id} (${examResult.fullname}) ส่งข้อสอบวิชา ${examResult.subject_name} (${isDisqualifiedNow ? 'ทุจริต/ถูกตัดสิทธิ์' : `คะแนนปรนัย: ${mcScore}/${examResult.total_score}`})`);
         const resultIcon = document.getElementById('result-icon');
         const resultTitle = document.getElementById('result-title');
         const resultMessage = document.getElementById('result-message');
@@ -4954,9 +4954,8 @@ Score: 5"></textarea>
                                        Boolean(examResult.cheating_detected) || 
                                        Number(examResult.warnings) >= 4;
 
-      // กรณีตรวจพบการทุจริต หรือถูกตัดสิทธิ์การสอบ: บล็อกการดูเฉลยทันทีเด็ดขาด แม้ครูจะเปิดเฉลยไว้ก็ตาม
       if (isCheatingOrDisqualified) {
-        if (contentDiv) contentDiv.innerHTML = ''; // ล้างข้อสอบและเฉลยออกจาก DOM ป้องกันการ Inspect
+        if (contentDiv) contentDiv.innerHTML = '';
         if (allowedDiv) allowedDiv.classList.add('hidden');
         if (blockedDiv) {
           blockedDiv.classList.remove('hidden');
