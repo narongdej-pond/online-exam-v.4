@@ -580,25 +580,22 @@
       <!-- Live Proctoring Management Page -->
       <div id="admin-proctoring" class="admin-content hidden">
        <div class="bg-white rounded-2xl card-shadow p-6 mb-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-start gap-4 mb-4 pb-4 border-b border-gray-100">
-         <div class="flex flex-wrap items-center gap-3 shrink-0">
-          <div class="flex items-center gap-2 mr-2">
-           <span class="relative flex h-3.5 w-3.5">
-             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-             <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-600"></span>
-           </span>
-           <h3 class="text-xl font-bold text-gray-800 whitespace-nowrap">คุมสอบ</h3>
-          </div>
-          <!-- ตัวกรองเลือกรายวิชาเพื่อคุมสอบ แสดงชิดด้านซ้าย -->
-          <select id="proctor-subject-select" onchange="changeProctorSubject()" class="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none text-sm font-semibold text-gray-700 bg-white shadow-sm min-w-[240px]">
-           <option value="">-- เลือกรายวิชาเพื่อคุมสอบ --</option>
-          </select>
+        <div class="flex flex-wrap items-center justify-start gap-3 mb-4 pb-4 border-b border-gray-100">
+         <div class="flex items-center gap-2 mr-2">
+          <span class="relative flex h-3.5 w-3.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-600"></span>
+          </span>
+          <h3 class="text-xl font-bold text-gray-800 whitespace-nowrap">คุมสอบ</h3>
          </div>
-         <div class="flex flex-wrap items-center gap-3">
-          <button onclick="broadcastAlertToAllModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
-           <i class="fas fa-bullhorn"></i> แจ้งเตือนทุกคน
-          </button>
-         </div>
+         <!-- ตัวกรองเลือกรายวิชาเพื่อคุมสอบ แสดงชิดด้านซ้าย -->
+         <select id="proctor-subject-select" onchange="changeProctorSubject()" class="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none text-sm font-semibold text-gray-700 bg-white shadow-sm min-w-[240px]">
+          <option value="">-- เลือกรายวิชาเพื่อคุมสอบ --</option>
+         </select>
+         <!-- ปุ่มแจ้งเตือนทุกคน แสดงชิดด้านซ้ายต่อจากตัวกรอง -->
+         <button onclick="broadcastAlertToAllModal()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
+          <i class="fas fa-bullhorn"></i> แจ้งเตือนทุกคน
+         </button>
         </div>
 
         <!-- Proctoring Stats Summary Widgets -->
@@ -1130,7 +1127,7 @@ Score: 5"></textarea>
     </div>
 
     <!-- Confirm Action Modal (Detailed confirmation for Delete, Save, Edit, Add, Disqualify, Warn) -->
-    <div id="confirm-delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-overlay">
+    <div id="confirm-delete-modal" class="hidden fixed inset-0 z-[90] flex items-center justify-center modal-overlay">
      <div class="bg-white rounded-2xl card-shadow p-6 w-full max-w-md mx-4 fade-in text-center">
       <div id="confirm-modal-icon-container" class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
        <i id="confirm-modal-icon" class="fas fa-exclamation-triangle text-3xl text-red-500"></i>
@@ -4954,8 +4951,9 @@ Score: 5"></textarea>
                                        Boolean(examResult.cheating_detected) || 
                                        Number(examResult.warnings) >= 4;
 
+      // กรณีตรวจพบการทุจริต หรือถูกตัดสิทธิ์การสอบ: บล็อกการดูเฉลยทันทีเด็ดขาด แม้ครูจะเปิดเฉลยไว้ก็ตาม
       if (isCheatingOrDisqualified) {
-        if (contentDiv) contentDiv.innerHTML = '';
+        if (contentDiv) contentDiv.innerHTML = ''; // ล้างข้อสอบและเฉลยออกจาก DOM ป้องกันการ Inspect
         if (allowedDiv) allowedDiv.classList.add('hidden');
         if (blockedDiv) {
           blockedDiv.classList.remove('hidden');
