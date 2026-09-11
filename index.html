@@ -721,12 +721,13 @@
           </div>
           
           <!-- Multiple Choice Section -->
-          <div class="border-2 border-gray-200 rounded-xl p-4">
-           <h4 class="font-bold text-gray-800 mb-2"><i class="fas fa-list-ul mr-2 text-primary-500"></i>ตอนที่ 1: ข้อสอบปรนัย (รองรับ ไทย / English / 中文)</h4>
-           <p class="text-xs text-gray-500 mb-4">รองรับรูปแบบตัวเลือก: ก.-จ., A.-E. หรือ A、-E、</p>
-           <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-800">
-            <p class="font-medium mb-1">📋 รูปแบบตัวอย่างที่รองรับ:</p>
-            <pre class="text-xs overflow-auto font-sarabun">1.คำถาม (ไทย / English / 中文)
+          <div class="border-2 border-blue-300 rounded-xl p-4 bg-blue-50">
+           <h4 class="font-bold text-gray-800 mb-4"><i class="fas fa-list-ul mr-2 text-blue-600"></i>ตอนที่ 1: ข้อสอบปรนัย (รองรับ ไทย / English / 中文)</h4>
+           <div class="bg-white border-2 border-blue-200 rounded-lg p-4 mb-4">
+            <p class="font-bold text-blue-900 mb-3">📋 รูปแบบตัวอย่างที่รองรับ:</p>
+            <pre class="text-sm overflow-auto bg-blue-100 p-3 rounded font-sarabun">
+รองรับรูปแบบตัวเลือก: ก.-จ., A.-E. หรือ A、-E、
+1.คำถาม (ไทย / English / 中文)
 ก.ตัวเลือก1 หรือ A.Choice1 หรือ A、选项1
 ข.ตัวเลือก2 หรือ B.Choice2 หรือ B、选项2
 ค.ตัวเลือก3 หรือ C.Choice3 หรือ C、选项3
@@ -781,12 +782,13 @@ D、芭提雅
           <div class="border-2 border-orange-300 rounded-xl p-4 bg-orange-50">
            <h4 class="font-bold text-gray-800 mb-4"><i class="fas fa-pen-fancy mr-2 text-orange-600"></i>ตอนที่ 2: ข้อสอบอัตนัย</h4>
            <div class="bg-white border-2 border-orange-200 rounded-lg p-4 mb-4">
-            <p class="font-bold text-orange-900 mb-3">📋 รูปแบบที่ถูกต้อง:</p>
-            <pre class="text-xs overflow-auto bg-orange-100 p-3 rounded border-l-4 border-orange-500 font-sarabun">1.คำถาม1 (ไทย / English / 中文)
+            <p class="font-bold text-orange-900 mb-3">📋 รูปแบบตัวอย่างที่ถูกต้อง:</p>
+            <pre class="text-sm overflow-auto bg-orange-100 p-3 rounded font-sarabun">
+1.คำถาม1 (ไทย / English / 中文)
 คะแนน: 10 (หรือ Score: 10 / 得分: 10)
 
 2.คำถาม2
-คะแนน: 5</pre>
+คะแนน: 5 (หรือ Score: 5 / 得分: 5)</pre>
            </div>
            <div class="mb-4">
             <label class="block text-gray-700 font-medium mb-2">วางข้อสอบที่นี่</label> 
@@ -794,7 +796,10 @@ D、芭提雅
 คะแนน: 10
 
 2.Explain the OSI Model layers.
-Score: 5"></textarea>
+Score: 5
+
+3.请举例说明计算机网络的类型。
+得分：5"></textarea>
            </div>
            <div class="flex gap-2">
             <button type="button" onclick="parseEssay()" class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition font-medium"> <i class="fas fa-wand-magic-sparkles"></i> แปลงเป็นข้อสอบ </button> 
@@ -1358,7 +1363,6 @@ Score: 5"></textarea>
     let currentExam = null;
     let isInAppBrowserDetected = false;
 
-    // ระบบสร้างและตรวจสอบ UUID มาตรฐาน RFC 4122
     function generateUUID() {
       if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         return crypto.randomUUID();
@@ -1429,6 +1433,7 @@ Score: 5"></textarea>
     function openInChromeAndroid() {
       const currentUrl = window.location.href.replace(/([?&])openExternalBrowser=1/g, '');
       const cleanUrl = currentUrl.replace(/^https?:\/\//i, '');
+
       const intentUrl = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end`;
       window.location.href = intentUrl;
     }
@@ -1499,6 +1504,7 @@ Score: 5"></textarea>
         d = new Date(rawDate);
       } else if (typeof rawDate === 'string') {
         let str = rawDate.trim();
+
         str = str.replace(/\b3112\b/g, '2569');
 
         const thaiMonthMap = {
@@ -1713,7 +1719,7 @@ Score: 5"></textarea>
           </div>
         `).join('');
       } else {
-        recentEl.innerHTML = '<p class="text-gray-500 text-center py-4">ยังไม่มีกิจกรรม</p>';
+        recentEl.innerHTML = '<p class="text-gray-500 text-center py-4">ยังไม่มีกิจกรรมในชีต</p>';
       }
     }
 
@@ -2382,6 +2388,7 @@ Score: 5"></textarea>
             appData = freshData;
           }
         } catch (e) {
+
         } finally {
           isStudentSyncing = false;
         }
@@ -3228,12 +3235,12 @@ Score: 5"></textarea>
 
           let scoreBadgeHtml = '';
           if (isGraded && qScore !== null) {
-            scoreBadgeHtml = `<span class="badge ${qScore > 0 ? 'badge-success' : 'badge-danger'} whitespace-nowrap text-xs md:text-sm font-bold shadow-sm">
-              <i class="fas fa-check-circle mr-1"></i>ครูให้คะแนน: ${qScore} / ${maxScore} คะแนน
+            scoreBadgeHtml = `<span class="badge ${qScore > 0 ? 'badge-success' : 'badge-danger'} whitespace-nowrap">
+              ${qScore > 0 ? '✓ ได้คะแนน' : '✗ ได้คะแนน'} (${qScore}/${maxScore} คะแนน)
             </span>`;
           } else {
-            scoreBadgeHtml = `<span class="badge badge-warning whitespace-nowrap text-xs md:text-sm font-bold shadow-sm">
-              <i class="fas fa-hourglass-half mr-1"></i>รอครูตรวจให้คะแนน (เต็ม ${maxScore})
+            scoreBadgeHtml = `<span class="badge badge-warning whitespace-nowrap">
+              <i class="fas fa-hourglass-half mr-1"></i>รอตรวจ (${maxScore} คะแนน)
             </span>`;
           }
 
@@ -3248,9 +3255,6 @@ Score: 5"></textarea>
               </div>
               <div class="flex items-center justify-between text-xs font-semibold pt-1 border-t border-gray-200/60">
                 <span class="text-gray-500"><i class="fas fa-star text-amber-500 mr-1"></i>คะแนนเต็มข้อนี้: <strong>${maxScore}</strong> คะแนน</span>
-                <span class="${isGraded && qScore !== null ? 'text-primary-700 font-bold' : 'text-amber-700'}">
-                  ${isGraded && qScore !== null ? `คะแนนที่ได้รับ: <span class="text-sm font-extrabold ${qScore > 0 ? 'text-emerald-600' : 'text-rose-600'}">${qScore}</span> / ${maxScore}` : 'ยังไม่ได้รับการตรวจ'}
-                </span>
               </div>
             </div>
           `;
@@ -3564,7 +3568,6 @@ Score: 5"></textarea>
       try {
         const loginData = await window.dataSdk._callAPI('login', { username, password });
         if (loginData && loginData.token) {
-
           if (!verifyBearerTokenStructure(loginData.token)) {
             showAlert('error', 'ความปลอดภัยล้มเหลว', 'เซสชันไม่ผ่านการตรวจสอบมาตรฐาน');
             return false;
@@ -3608,11 +3611,11 @@ Score: 5"></textarea>
     function adminLogout() {
       showActionConfirm({
         title: 'ยืนยันการออกจากระบบ',
-        message: 'คุณต้องการออกจากระบบใช่หรือไม่?\n(เซสชันของคุณจะถูกเพิกถอนและทำลายทันทีเพื่อความปลอดภัย)',
+        message: 'คุณต้องการออกจากระบบใช่หรือไม่?\n(เซสชันการใช้งานของคุณจะออกจากระบบ)',
         icon: 'fa-sign-out-alt',
         iconColor: 'text-red-500',
         iconBg: 'bg-red-100',
-        confirmText: 'ออกจากระบบทันที',
+        confirmText: 'ออกจากระบบ',
         confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
         onConfirm: () => {
           handleLogout();
@@ -3664,7 +3667,7 @@ Score: 5"></textarea>
       stopLoading();
       showPage('home');
       logActivity(`ผู้ใช้ ${fullname} ออกจากระบบแล้ว`);
-      showAlert('success', 'ออกจากระบบสำเร็จ', 'คุณได้ออกจากระบบเรียบร้อยแล้ว');
+      showAlert('success', 'ออกจากระบบสำเร็จ', 'คุณออกจากระบบเรียบร้อยแล้ว');
     }
 
     function parseMultipleChoice() {
@@ -3925,8 +3928,8 @@ Score: 5"></textarea>
       setButtonLoading(btn, true, 'กำลังเข้าสู่ระบบ...');
 
       setTimeout(async () => {
-        const username = document.getElementById('admin-username').value;
-        const password = document.getElementById('admin-password').value;
+        const username = document.getElementById('admin-username').value.trim();
+        const password = document.getElementById('admin-password').value.trim();
         await handleLogin(username, password);
         setButtonLoading(btn, false);
       }, 300);
