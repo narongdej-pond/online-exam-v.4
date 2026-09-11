@@ -3586,7 +3586,7 @@ Score: 5
           showAdminPage('dashboard');
           syncActivityLogs();
           updateUI();
-          logActivity(`ผู้ใช้ ${currentUser.fullname} เข้าสู่ระบบ (เซสชันสร้างสำเร็จ)`);
+          logActivity(`ผู้ใช้ ${currentUser.fullname} เข้าสู่ระบบ`);
           showAlert('success', 'เข้าสู่ระบบสำเร็จ', `ยินดีต้อนรับ ${currentUser.fullname}`);
           
           if (proctoringInterval) clearInterval(proctoringInterval);
