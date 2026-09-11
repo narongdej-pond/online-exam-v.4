@@ -1779,6 +1779,14 @@ Score: 5"></textarea>
                 if (result.status === 'success') {
                     return result.data;
                 } else {
+                    // หากพบว่า Session Token หมดอายุหรือถูกเพิกถอนจากการออกจากระบบ
+                    if (result.message && (result.message.includes('401') || result.message.includes('Unauthorized') || result.message.includes('Session Token'))) {
+                      teacherAuthToken = '';
+                      localStorage.removeItem('donmueang_teacher_token');
+                      currentUser = null;
+                      showAlert('warning', 'เซสชันหมดอายุ', 'เซสชันการใช้งานของคุณสิ้นสุดหรือหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
+                      showPage('home');
+                    }
                     throw new Error(result.message);
                 }
             } catch (error) {
@@ -3181,13 +3189,26 @@ Score: 5"></textarea>
         essay: (rawQuestions.essay || []).map((q, idx) => ({ ...q, id: q.id || `essay_${idx}` }))
       };
 
+      // ดึงข้อมูลคะแนนอัตนัยแยกรายข้อที่ครูตรวจให้
+      let essayScores = {};
+      if (resultData.essay_scores) {
+        try {
+          essayScores = typeof resultData.essay_scores === 'string' ? JSON.parse(resultData.essay_scores) : resultData.essay_scores;
+        } catch (e) {}
+      }
+      if (!essayScores || Object.keys(essayScores).length === 0) {
+        if (rawAnswers && rawAnswers.essay_scores) {
+          essayScores = rawAnswers.essay_scores;
+        }
+      }
+
       let html = `
         <div class="bg-gray-50 rounded-xl p-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm border">
           <p><strong>ผู้สอบ:</strong> ${resultData.fullname} (${resultData.student_id})</p>
           <p><strong>ชั้น/ห้อง:</strong> ${resultData.class_name}/${resultData.room} เลขที่ ${resultData.number}</p>
           <p><strong>รายวิชา:</strong> ${resultData.subject_name}</p>
           <p><strong>เวลาส่งคำตอบ:</strong> ${new Date(resultData.submitted_at).toLocaleString('th-TH')}</p>
-          <p><strong>คะแนนรวม:</strong> <span class="text-primary-600 font-bold text-base">${resultData.score} / ${resultData.total_score}</span></p>
+          <p><strong>คะแนนรวม:</strong> <span class="text-primary-600 font-bold text-base">${resultData.score} / ${resultData.total_score}</span> (ปรนัย: ${resultData.mc_score || 0}, อัตนัย: ${resultData.essay_score !== undefined ? resultData.essay_score : (resultData.graded ? 0 : 'รอตรวจ')})</p>
           <p><strong>สถานะการตรวจ:</strong> ${resultData.graded ? '<span class="badge badge-success">ตรวจแล้ว</span>' : '<span class="badge badge-warning">รอตรวจ</span>'}</p>
         </div>
       `;
@@ -3233,13 +3254,38 @@ Score: 5"></textarea>
       if (questions.essay && questions.essay.length > 0) {
         questions.essay.forEach((q, idx) => {
           const essayAns = answers.essay[q.id] !== undefined ? answers.essay[q.id] : answers.essay[idx];
+          const qScore = (essayScores && (essayScores[q.id] !== undefined ? essayScores[q.id] : essayScores[idx])) !== undefined
+            ? (essayScores[q.id] !== undefined ? essayScores[q.id] : essayScores[idx])
+            : null;
+          const maxScore = q.maxScore || (exam && exam.score_per_question) || 1;
+          const isGraded = Boolean(resultData.graded);
+
+          let scoreBadgeHtml = '';
+          if (isGraded && qScore !== null) {
+            scoreBadgeHtml = `<span class="badge ${qScore > 0 ? 'badge-success' : 'badge-danger'} whitespace-nowrap text-xs md:text-sm font-bold shadow-sm">
+              <i class="fas fa-check-circle mr-1"></i>ครูให้คะแนน: ${qScore} / ${maxScore} คะแนน
+            </span>`;
+          } else {
+            scoreBadgeHtml = `<span class="badge badge-warning whitespace-nowrap text-xs md:text-sm font-bold shadow-sm">
+              <i class="fas fa-hourglass-half mr-1"></i>รอครูตรวจให้คะแนน (เต็ม ${maxScore})
+            </span>`;
+          }
+
           html += `
-            <div class="p-4 border-2 border-orange-200 bg-orange-50/50 rounded-xl mb-3">
-              <p class="font-bold text-gray-800 mb-2"><span class="text-orange-600">ข้อที่ ${(questions.mc?.length || 0) + idx + 1} (อัตนัย).</span> ${q.question}</p>
-              <div class="bg-white p-3 rounded-lg border text-sm text-gray-800 font-sarabun mb-2 whitespace-pre-wrap">
+            <div class="p-4 border-2 ${isGraded && qScore !== null ? (qScore > 0 ? 'border-emerald-300 bg-emerald-50/40' : 'border-rose-300 bg-rose-50/40') : 'border-orange-200 bg-orange-50/50'} rounded-xl mb-3 transition">
+              <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
+                <p class="font-bold text-gray-800"><span class="text-orange-600">ข้อที่ ${(questions.mc?.length || 0) + idx + 1} (อัตนัย).</span> ${q.question}</p>
+                ${scoreBadgeHtml}
+              </div>
+              <div class="bg-white p-3 rounded-lg border text-sm text-gray-800 font-sarabun mb-2 whitespace-pre-wrap leading-relaxed shadow-sm">
                 ${essayAns || '<em class="text-gray-400">ผู้สอบไม่ได้ตอบข้อนี้</em>'}
               </div>
-              <p class="text-xs text-orange-700 font-medium"><i class="fas fa-star mr-1"></i>คะแนนเต็ม: ${q.maxScore || (exam && exam.score_per_question) || 1}</p>
+              <div class="flex items-center justify-between text-xs font-semibold pt-1 border-t border-gray-200/60">
+                <span class="text-gray-500"><i class="fas fa-star text-amber-500 mr-1"></i>คะแนนเต็มข้อนี้: <strong>${maxScore}</strong> คะแนน</span>
+                <span class="${isGraded && qScore !== null ? 'text-primary-700 font-bold' : 'text-amber-700'}">
+                  ${isGraded && qScore !== null ? `คะแนนที่ได้รับ: <span class="text-sm font-extrabold ${qScore > 0 ? 'text-emerald-600' : 'text-rose-600'}">${qScore}</span> / ${maxScore}` : 'ยังไม่ได้รับการตรวจ'}
+                </span>
+              </div>
             </div>
           `;
         });
@@ -3335,6 +3381,17 @@ Score: 5"></textarea>
           const rawQuestions = (typeof exam.questions === 'string') ? JSON.parse(exam.questions) : exam.questions;
           const essayQuestions = (rawQuestions.essay || []).map((q, idx) => ({ ...q, id: q.id || `essay_${idx}` }));
 
+          // ดึงคะแนนเดิมที่เคยตรวจไว้ก่อนหน้า (ถ้ามี)
+          let savedScores = {};
+          if (result_data.essay_scores) {
+            try {
+              savedScores = typeof result_data.essay_scores === 'string' ? JSON.parse(result_data.essay_scores) : result_data.essay_scores;
+            } catch (e) {}
+          }
+          if (!savedScores || Object.keys(savedScores).length === 0) {
+            if (rawAnswers && rawAnswers.essay_scores) savedScores = rawAnswers.essay_scores;
+          }
+
           const content = document.getElementById('grading-content');
           content.innerHTML = `
             <div class="bg-gray-50 rounded-lg p-4 mb-4">
@@ -3343,6 +3400,9 @@ Score: 5"></textarea>
             </div>
             ${essayQuestions.map((q, i) => {
               const essayAns = answers.essay[q.id] !== undefined ? answers.essay[q.id] : answers.essay[i];
+              const prefilledScore = (savedScores && (savedScores[q.id] !== undefined ? savedScores[q.id] : savedScores[i])) !== undefined
+                ? (savedScores[q.id] !== undefined ? savedScores[q.id] : savedScores[i])
+                : 0;
               return `
                 <div class="border border-gray-200 rounded-lg p-4">
                   <p class="font-medium text-gray-800 mb-2">ข้อที่ ${i + 1}: ${q.question}</p>
@@ -3352,8 +3412,8 @@ Score: 5"></textarea>
                   </div>
                   <div class="flex items-center gap-2">
                     <label class="text-sm text-gray-600">คะแนน:</label>
-                    <input type="number" id="essay-score-${q.id}" min="0" max="${q.maxScore || exam.score_per_question}" step="0.5" value="0"
-                      class="w-20 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:outline-none text-center">
+                    <input type="number" id="essay-score-${q.id}" min="0" max="${q.maxScore || exam.score_per_question}" step="0.5" value="${prefilledScore}"
+                      class="w-20 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:outline-none text-center font-bold text-primary-600">
                     <span class="text-sm text-gray-500">/ ${q.maxScore || exam.score_per_question}</span>
                   </div>
                 </div>
@@ -3393,21 +3453,33 @@ Score: 5"></textarea>
           const rawQuestions = (typeof exam.questions === 'string') ? JSON.parse(exam.questions) : exam.questions;
           const essayQuestions = (rawQuestions.essay || []).map((q, idx) => ({ ...q, id: q.id || `essay_${idx}` }));
           let essayScore = 0;
+          const itemizedScores = {};
 
           essayQuestions.forEach((q, i) => {
             const scoreInput = document.getElementById(`essay-score-${q.id}`) || document.getElementById(`essay-score-${i}`);
-            if (scoreInput) {
-              essayScore += parseFloat(scoreInput.value) || 0;
-            }
+            const val = scoreInput ? (parseFloat(scoreInput.value) || 0) : 0;
+            itemizedScores[q.id] = val;
+            itemizedScores[i] = val;
+            essayScore += val;
           });
 
           const mcScore = currentGradingResult.mc_score || 0;
           const totalScore = mcScore + essayScore;
 
+          let updatedAnswers = {};
+          try {
+            updatedAnswers = typeof currentGradingResult.answers === 'string' ? JSON.parse(currentGradingResult.answers) : (currentGradingResult.answers || { mc: {}, essay: {} });
+          } catch(e) {
+            updatedAnswers = { mc: {}, essay: {} };
+          }
+          updatedAnswers.essay_scores = itemizedScores;
+
           const result = await window.dataSdk.update({
             ...currentGradingResult,
             score: totalScore,
             essay_score: essayScore,
+            essay_scores: JSON.stringify(itemizedScores),
+            answers: JSON.stringify(updatedAnswers),
             graded: true
           });
 
@@ -3562,30 +3634,67 @@ Score: 5"></textarea>
     }
 
     function adminLogout() {
-      handleLogout();
+      showActionConfirm({
+        title: 'ยืนยันการออกจากระบบ',
+        message: 'คุณต้องการออกจากระบบใช่หรือไม่?\n\n(Session Token ของคุณจะถูกเพิกถอนและทำลายทันทีเพื่อความปลอดภัย)',
+        icon: 'fa-sign-out-alt',
+        iconColor: 'text-red-500',
+        iconBg: 'bg-red-100',
+        confirmText: 'ออกจากระบบทันที',
+        confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
+        onConfirm: () => {
+          handleLogout();
+        }
+      });
     }
 
-    function handleLogout() {
-      const fullname = currentUser?.fullname || 'ผู้ใช้งาน';
-      logActivity(`ผู้ใช้ ${fullname} ออกจากระบบ`);
-      
-      if (teacherAuthToken) {
-        window.dataSdk._callAPI('logout').catch(() => {});
-        teacherAuthToken = '';
-        localStorage.removeItem('donmueang_teacher_token');
+    async function handleLogout() {
+      startLoading();
+      const textEl = document.getElementById('loadingText');
+      if (textEl) {
+        textEl.innerText = "กำลังเพิกถอน Session Token และออกจากระบบ...";
+        textEl.className = "text-gray-700 text-lg font-medium";
       }
 
+      const fullname = currentUser?.fullname || 'ผู้ใช้งาน';
+      const tokenToRevoke = teacherAuthToken;
+
+      // ส่งคำขอยกเลิกและเพิกถอน Session Token (Bearer Token) บนเซิร์ฟเวอร์ทันที
+      if (tokenToRevoke) {
+        try {
+          await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'logout',
+              token: tokenToRevoke
+            })
+          });
+        } catch (e) {
+          console.warn('Logout revocation notice:', e);
+        }
+      }
+
+      // ล้าง Token และข้อมูลสิทธิ์ทั้งหมดออกจากเครื่องทันที
+      teacherAuthToken = '';
+      localStorage.removeItem('donmueang_teacher_token');
       currentUser = null;
+
+      if (proctoringInterval) clearInterval(proctoringInterval);
       if (examTimer) clearInterval(examTimer);
+      if (window.adminDatetimeInterval) clearInterval(window.adminDatetimeInterval);
+
       document.removeEventListener('contextmenu', preventAction);
       document.removeEventListener('copy', preventAction);
       document.removeEventListener('paste', preventAction);
       document.removeEventListener('cut', preventAction);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
-      
+
+      stopLoading();
       showPage('home');
-      showAlert('info', 'ออกจากระบบ', 'คุณได้ออกจากระบบเรียบร้อยแล้ว');
+      logActivity(`ผู้ใช้ ${fullname} ออกจากระบบและเพิกถอนเซสชันแล้ว`);
+      showAlert('success', 'ออกจากระบบสำเร็จ', 'Session Token (Bearer Token) ของคุณถูกเพิกถอนและทำลายทันทีเรียบร้อยแล้ว');
     }
 
     function parseMultipleChoice() {
