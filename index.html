@@ -1358,6 +1358,31 @@ Score: 5"></textarea>
     let currentExam = null;
     let isInAppBrowserDetected = false;
 
+    // ระบบสร้างและตรวจสอบ UUID มาตรฐาน RFC 4122
+    function generateUUID() {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    function isValidUUID(uuid) {
+      if (!uuid || typeof uuid !== 'string') return false;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      return uuidRegex.test(uuid.trim());
+    }
+
+    function verifyBearerTokenStructure(token) {
+      if (!token || typeof token !== 'string') return false;
+      const match = token.trim().match(/^Bearer\s+dtc_([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})_(\d+)$/i);
+      if (!match) return false;
+      return isValidUUID(match[1]);
+    }
+
     function detectInAppBrowser() {
       const ua = navigator.userAgent || navigator.vendor || window.opera || '';
 
@@ -1649,12 +1674,21 @@ Score: 5"></textarea>
 
     function syncActivityLogs() {
       try {
+        if (!currentUser) {
+          activityLogs = [];
+          renderActivityLogs();
+          return;
+        }
+
+        const currentUserId = String(currentUser.__backendId || currentUser.id || '').trim();
+        const currentUsername = String(currentUser.username || '').trim();
+        const userLogStorageKey = `donmueang_exam_logs_${currentUsername || 'guest'}`;
+
         let storedLogs = [];
-        const localData = localStorage.getItem('donmueang_exam_logs');
+        const localData = localStorage.getItem(userLogStorageKey);
         if (localData) {
           try {
             const rawStored = JSON.parse(localData);
-            // ตรวจสอบและแปลงปี พ.ศ. ของข้อมูลเดิมในแคชให้ถูกต้องอัตโนมัติ
             storedLogs = (Array.isArray(rawStored) ? rawStored : []).map(item => {
               const dt = parseAndFormatThaiDateTime(item.rawTimestamp || (item.date + ' ' + (item.time || '')));
               return {
@@ -1668,8 +1702,12 @@ Score: 5"></textarea>
           }
         }
 
+        // กรองเฉพาะกิจกรรมที่เป็นของระบบฉัน (ผู้ใช้งานปัจจุบัน) ไม่ดึงจากที่อื่นมา
         const dbLogs = (appData || [])
-          .filter(d => d.type === 'log')
+          .filter(d => d.type === 'log' && (
+            (currentUserId && String(d.member_id).trim() === currentUserId) ||
+            (currentUsername && String(d.username).trim() === currentUsername)
+          ))
           .map(l => {
             const rawTime = l.timestamp || l.created_at || null;
             const dt = parseAndFormatThaiDateTime(rawTime);
@@ -1702,7 +1740,7 @@ Score: 5"></textarea>
         });
 
         activityLogs = sorted.slice(0, 15);
-        localStorage.setItem('donmueang_exam_logs', JSON.stringify(activityLogs));
+        localStorage.setItem(userLogStorageKey, JSON.stringify(activityLogs));
       } catch (err) {
         console.warn('Error syncing activity logs:', err);
       }
@@ -1743,14 +1781,16 @@ Score: 5"></textarea>
       };
       activityLogs.unshift(newLog);
       if (activityLogs.length > 15) activityLogs.pop();
+      
       try {
-        localStorage.setItem('donmueang_exam_logs', JSON.stringify(activityLogs));
+        const currentUsername = currentUser ? (currentUser.username || 'guest') : 'guest';
+        localStorage.setItem(`donmueang_exam_logs_${currentUsername}`, JSON.stringify(activityLogs));
       } catch(e) {}
       renderActivityLogs();
 
       if (window.dataSdk && window.dataSdk.create) {
         window.dataSdk.create({
-          id: generateId(),
+          id: generateUUID(),
           type: 'log',
           member_id: currentUser ? (currentUser.id || currentUser.__backendId || '') : '',
           username: currentUser ? currentUser.username : 'Guest',
@@ -3599,6 +3639,12 @@ Score: 5"></textarea>
       try {
         const loginData = await window.dataSdk._callAPI('login', { username, password });
         if (loginData && loginData.token) {
+          // ตรวจสอบความถูกต้องของโครงสร้าง Session Token และ UUID
+          if (!verifyBearerTokenStructure(loginData.token)) {
+            showAlert('error', 'ความปลอดภัยล้มเหลว', 'เซสชันไม่ผ่านการตรวจสอบมาตรฐาน');
+            return false;
+          }
+
           teacherAuthToken = loginData.token;
           localStorage.setItem('donmueang_teacher_token', teacherAuthToken);
           currentUser = loginData.member;
@@ -3610,8 +3656,9 @@ Score: 5"></textarea>
           hideModal('admin-login-modal');
           showPage('admin');
           showAdminPage('dashboard');
+          syncActivityLogs();
           updateUI();
-          logActivity(`ผู้ใช้ ${currentUser.fullname} เข้าสู่ระบบ`);
+          logActivity(`ผู้ใช้ ${currentUser.fullname} เข้าสู่ระบบ (เซสชันสร้างสำเร็จ)`);
           showAlert('success', 'เข้าสู่ระบบสำเร็จ', `ยินดีต้อนรับ ${currentUser.fullname}`);
           
           if (proctoringInterval) clearInterval(proctoringInterval);
@@ -3624,7 +3671,7 @@ Score: 5"></textarea>
 
           return true;
         } else {
-          showAlert('error', 'เข้าสู่ระบบไม่สำเร็จ', 'ไม่สามารถสร้าง Session Token ได้');
+          showAlert('error', 'เข้าสู่ระบบไม่สำเร็จ', 'ไม่สามารถสร้างเซสชันได้');
           return false;
         }
       } catch (err) {
@@ -3636,7 +3683,7 @@ Score: 5"></textarea>
     function adminLogout() {
       showActionConfirm({
         title: 'ยืนยันการออกจากระบบ',
-        message: 'คุณต้องการออกจากระบบใช่หรือไม่?\n\n(Session Token ของคุณจะถูกเพิกถอนและทำลายทันทีเพื่อความปลอดภัย)',
+        message: 'คุณต้องการออกจากระบบใช่หรือไม่?\n\n(เซสชันของคุณจะถูกเพิกถอนและทำลายทันทีเพื่อความปลอดภัย)',
         icon: 'fa-sign-out-alt',
         iconColor: 'text-red-500',
         iconBg: 'bg-red-100',
@@ -3652,7 +3699,7 @@ Score: 5"></textarea>
       startLoading();
       const textEl = document.getElementById('loadingText');
       if (textEl) {
-        textEl.innerText = "กำลังเพิกถอน Session Token และออกจากระบบ...";
+        textEl.innerText = "กำลังออกจากระบบ...";
         textEl.className = "text-gray-700 text-lg font-medium";
       }
 
@@ -3693,8 +3740,8 @@ Score: 5"></textarea>
 
       stopLoading();
       showPage('home');
-      logActivity(`ผู้ใช้ ${fullname} ออกจากระบบและเพิกถอนเซสชันแล้ว`);
-      showAlert('success', 'ออกจากระบบสำเร็จ', 'Session Token (Bearer Token) ของคุณถูกเพิกถอนและทำลายทันทีเรียบร้อยแล้ว');
+      logActivity(`ผู้ใช้ ${fullname} ออกจากระบบแล้ว`);
+      showAlert('success', 'ออกจากระบบสำเร็จ', 'คุณออกจากระบบเรียบร้อยแล้ว');
     }
 
     function parseMultipleChoice() {
